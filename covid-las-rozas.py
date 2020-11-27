@@ -104,7 +104,7 @@ def main():
     latest[zona]=get_latest(covidcsv,zona)
     if compare_json(latest[zona],zona+".json"):
       tweet=generate_tweet(latest[zona])
-      #publish_tweet(tweet)
+      publish_tweet(tweet)
       print(tweet)
 
 if __name__ == "__main__":

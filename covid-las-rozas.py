@@ -13,7 +13,7 @@ CSVFILE = os.getenv("COVID_CSV")
 JSONFILE = os.getenv("JSON_FILE")
 
 hashtag = "#LasRozas"
-zonas = ["Las Matas","La Marazuela","Monterrozas","Las Rozas"]
+zonas = ["La Marazuela","Las Matas","Las Rozas","Monterrozas"]
 
 def get_csv(response):
   # https://stackoverflow.com/questions/35371043/use-python-requests-to-download-csv
@@ -104,7 +104,7 @@ def main():
     latest[zona]=get_latest(covidcsv,zona)
     if compare_json(latest[zona],zona+".json"):
       tweet=generate_tweet(latest[zona])
-      publish_tweet(tweet)
+      #publish_tweet(tweet)
       print(tweet)
 
 if __name__ == "__main__":

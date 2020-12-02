@@ -1,5 +1,6 @@
-import requests, json, tweepy, os, random, csv, sys
+import requests, json, tweepy, os
 from dotenv import load_dotenv
+from datetime import datetime
 
 load_dotenv()
 
@@ -15,51 +16,31 @@ JSONFILE = os.getenv("JSON_FILE")
 hashtag = "#LasRozas"
 zonas = ["La Marazuela","Las Matas","Las Rozas","Monterrozas"]
 
-def get_csv(response):
-  # https://stackoverflow.com/questions/35371043/use-python-requests-to-download-csv
-  return response.content.decode('ISO-8859-1')
-
-def compare_csv(oldfile,response):
-  # https://stackoverflow.com/a/44299915
-  filesize = int(os.stat(oldfile).st_size)
-  responsesize = int(response.headers['Content-length'])
-
-  if responsesize == filesize:
-    return True
-  else:
-    return False
-
-def store_csv(content,location):
-  csvfile = open(location, 'wb') 
-  csvfile.write(content) 
-  csvfile.close()
-
-def get_latest(covidcsv,zona):
-  for row in covidcsv:
-    if row['zona_basica_salud'] == zona:
-      return row
-
-def save_to_json(data,file):
-  with open(file, 'w') as fp:
+def save_data(data,zona):
+  myfile=zona+".json"
+  with open(myfile, 'w') as fp:
     json.dump(data, fp)
 
-def compare_json(data,file):
+def compare_data(data,zona):
+  myfile=zona+".json"
   # Open the previous json data
   try:
-    with open(file) as json_file:
+    with open(myfile) as json_file:
       previous = json.load(json_file)
   except:
     previous = {}
 
   # If the results are the same, do nothing
   if previous == data:
-    return False
+    return True
   else:
     # Otherwise, save the file for next execution and continue
-    save_to_json(data,file)
-    return True
+    save_data(data,zona)
+    return False
 
 def generate_tweet(data):
+  dt = datetime.strptime(data["fecha_informe"], '%Y-%m-%dT%H:%M:%S')
+  datecorrected="{}/{}/{}".format(dt.day,dt.month,dt.year)
   tweet='''\
   {zona} ({fecha})
   Últimos 14 días:
@@ -68,13 +49,14 @@ def generate_tweet(data):
   Totales:
   • Confirmados: {confirmados_totales}
   • Incidencia acumulada: {incidencia_totales}
-  #LasRozas
+  {hashtag}
   '''.format(zona=data["zona_basica_salud"], \
-             fecha=data["fecha_informe"], \
+             fecha=datecorrected, \
              confirmados_14_dias = data["casos_confirmados_ultimos_14dias"], \
              incidencia_14_dias = data["tasa_incidencia_acumulada_ultimos_14dias"], \
              confirmados_totales = data["casos_confirmados_totales"], \
-             incidencia_totales = data["tasa_incidencia_acumulada_total"])
+             incidencia_totales = data["tasa_incidencia_acumulada_total"], \
+             hashtag=hashtag)
   return tweet
 
 def publish_tweet(data):
@@ -86,24 +68,19 @@ def publish_tweet(data):
   api = tweepy.API(auth)
   api.update_status(data)
 
-def main():  
-  try:
-    response = requests.get(COVID_URL, stream=True)
-    response.raise_for_status()
-  except requests.exceptions.HTTPError as err:
-    raise SystemExit(err)
-  # https://stackoverflow.com/a/44299915
-  if compare_csv(CSVFILE,response):
-    sys.exit("Dupe")
-  else:
-    store_csv(response.content,CSVFILE)
-  covidcsv = csv.DictReader(get_csv(response).splitlines(), delimiter=";", quoting=csv.QUOTE_NONE)
-  
-  latest={}
+def main():
   for zona in zonas:
-    latest[zona]=get_latest(covidcsv,zona)
-    if compare_json(latest[zona],zona+".json"):
-      tweet=generate_tweet(latest[zona])
+    url=COVID_URL.format(zona=zona)
+    try:
+      response = requests.get(url)
+      response.raise_for_status()
+    except requests.exceptions.HTTPError as err:
+      raise SystemExit(err)
+    data=response.json()["result"]["records"][0]
+    if compare_data(data,zona):
+      print(zona+" dupe")
+    else:
+      tweet=generate_tweet(data)
       publish_tweet(tweet)
       print(tweet)
 

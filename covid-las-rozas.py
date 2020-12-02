@@ -1,4 +1,4 @@
-import requests, json, tweepy, os
+import requests, json, tweepy, os, random
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -10,10 +10,8 @@ ACCESS_TOKEN = os.getenv("ACCESS_TOKEN")
 ACCESS_TOKEN_SECRET = os.getenv("ACCESS_TOKEN_SECRET")
 
 COVID_URL = os.getenv("COVID_URL_LASROZAS")
-CSVFILE = os.getenv("COVID_CSV")
-JSONFILE = os.getenv("JSON_FILE")
 
-hashtag = "#LasRozas"
+hashtag = "#LasRozas #LasRozasSegura"
 zonas = ["La Marazuela","Las Matas","Las Rozas","Monterrozas"]
 
 def save_data(data,zona):
@@ -69,6 +67,7 @@ def publish_tweet(data):
   api.update_status(data)
 
 def main():
+  random.shuffle(zonas)
   for zona in zonas:
     url=COVID_URL.format(zona=zona)
     try:

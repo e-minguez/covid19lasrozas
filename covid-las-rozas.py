@@ -40,7 +40,7 @@ def generate_tweet(data):
   dt = datetime.strptime(data["fecha_informe"], '%Y-%m-%dT%H:%M:%S')
   datecorrected="{}/{}/{}".format(dt.day,dt.month,dt.year)
   tweet='''\
-  {zona} ({fecha})
+  ZBS: {zona} ({fecha})
   Últimos 14 días:
   • Confirmados: {confirmados_14_dias}
   • Incidencia acumulada: {incidencia_14_dias}
